@@ -13,8 +13,7 @@ from torch.autograd import Variable                 # Auto Differentaion package
 import cv2                                          # OpenCV Library to carry out Computer Vision tasks
 import emoji
 import warnings                                     # to manage warnings that are displayed during execution
-warnings.filterwarnings(
-    'ignore')                                       # to ignore warning messages while code execution
+warnings.filterwarnings('ignore')                                       # to ignore warning messages while code execution
 print('\033[1m' + '\033[91m' + "Kickstarting YOLO...\n")
 from util.parser import load_classes                # navigates to load_classess function in util.parser.py
 from util.model import Darknet                      # to load weights into our model for vehicle detection
@@ -157,6 +156,7 @@ print(
 print('\033[1m' +
       "{:25s}: ".format("\nDetected  (" + str(len(imlist)) + " inputs)"))
 print('\033[0m')
+lanes_dic={}
 #Loading the image, if present :
 for i, batch in enumerate(im_batches):
     #load the image
@@ -192,7 +192,6 @@ for i, batch in enumerate(im_batches):
         write = 1
     else:
         output = torch.cat((output, prediction))
-
     for im_num, image in enumerate(
             imlist[i * batch_size:min((i + 1) * batch_size, len(imlist))]):
         vehicle_count = 0
@@ -215,6 +214,7 @@ for i, batch in enumerate(im_batches):
         if vehicle_count > lane_with_higher_count:
             lane_with_higher_count = vehicle_count
             denser_lane = input_image_count
+        lanes_dic[vehicle_count]=input_image_count
 
         '''print(
             '\033[0m' +
@@ -241,10 +241,15 @@ print(
     emoji.emojize(':vertical_traffic_light:') + '\033[1m' + '\033[94m' +
     " Lane with denser traffic is : Lane " + str(denser_lane) + '\033[30m' +
     "\n")
+lanes_dic = dict(sorted(lanes_dic.items(), reverse=True))
+for key, value in lanes_dic.items():
+    switching_time = avg_signal_oc_time(lane_count_list)
+    switch_signal(value, switching_time)
 
-switching_time = avg_signal_oc_time(lane_count_list)
 
-switch_signal(denser_lane, switching_time)
+# switching_time = avg_signal_oc_time(lane_count_list)
+
+# switch_signal(denser_lane, switching_time)
 
 print(
     '\033[1m' +
