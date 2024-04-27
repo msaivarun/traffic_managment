@@ -1,5 +1,4 @@
-'''*** Import Section ***'''
-from __future__ import division                     # to allow compatibility of code between Python 2.x and 3.x with minimal overhead
+'''*** Import Section ***'''                   # to allow compatibility of code between Python 2.x and 3.x with minimal overhead
 from collections import Counter                     # library and method for counting hashable objects
 import argparse                                     # to define arguments to the program in a user-friendly way
 import os                                           # provides functions to interact with local file system
@@ -17,10 +16,12 @@ warnings.filterwarnings('ignore')                                       # to ign
 print('\033[1m' + '\033[91m' + "Kickstarting YOLO...\n")
 from util.parser import load_classes                # navigates to load_classess function in util.parser.py
 from util.model import Darknet                      # to load weights into our model for vehicle detection
+import sounddevice as sd
+import numpy as np
 from util.image_processor import preparing_image    # to pass input image into model,after resizing it into yolo format
 from util.utils import non_max_suppression          # to do non-max-suppression in the detected bounding box objects i.e cars
 from util.dynamic_signal_switching import switch_signal
-from util.dynamic_signal_switching import avg_signal_oc_time
+# from util.dynamic_signal_switching import avg_signal_oc_time
 
 
 #*** Parsing Arguments to YOLO Model ***
@@ -73,10 +74,10 @@ nms_thesh = float(args.nms_thresh)
 start = 0
 CUDA = torch.cuda.is_available()
 
-#***Loading Dataset Class File***
+#Loading Dataset Class File**
 classes = load_classes("data/idd.names")
 
-#***Setting up the neural network***
+#Setting up the neural network**
 model = Darknet(args.cfgfile)
 print('\033[0m' + "Input Data Passed Into YOLO Model..." + u'\N{check mark}')
 model.load_weights(args.weightsfile)
@@ -97,7 +98,7 @@ if CUDA:
 model.eval()
 read_dir = time.time()
 
-#***Vehicle Detection Phase***
+#Vehicle Detection Phase**
 try:
     imlist = [
         osp.join(osp.realpath('.'), images, img) for img in os.listdir(images)
@@ -156,7 +157,20 @@ print(
 print('\033[1m' +
       "{:25s}: ".format("\nDetected  (" + str(len(imlist)) + " inputs)"))
 print('\033[0m')
-lanes_dic={}
+lanes_dic,vt,am={},{},{}
+
+# Function to detect ambulance sound and update flag for the corresponding lane
+def ambulance_detect(image):
+    duration = 5  # seconds
+    fs = 44100  # Sampling frequency
+    audio_data = sd.rec(int(duration * fs), samplerate=fs, channels=1)
+    # Analyze audio data for ambulance sound (example: peak amplitude)
+    peak_amplitude = np.max(audio_data)
+
+    # Check if peak amplitude exceeds a certain threshold (example: 0.5)
+    if peak_amplitude > 0.5:
+        return True
+    return False
 #Loading the image, if present :
 for i, batch in enumerate(im_batches):
     #load the image
@@ -220,10 +234,19 @@ for i, batch in enumerate(im_batches):
             '\033[0m' +
             "           File Name:     {0:20s}.".format(image.split("/")[-1]))'''
         print('\033[0m' +"           {:15} {}".format("Vehicle Type", "Count"))
+        tt=0
         for key, value in sorted(vc.items()):
+            if key == "car" or key == "motorbike" or key == "bicycle":
+                tt=tt+value
+            elif key == "truck":
+                tt=tt+2*value
             if key == "car" or key == "motorbike" or key == "truck" or key == "bicycle":
                 print('\033[0m' + "            {:15s} {}".format(key, value))
-
+        vt[input_image_count]=tt
+        if(ambulance_detect(image)):
+            am[input_image_count]=1
+        else:
+            am[input_image_count]=0
     if CUDA:
         torch.cuda.synchronize()
 
@@ -242,9 +265,9 @@ print(
     " Lane with denser traffic is : Lane " + str(denser_lane) + '\033[30m' +
     "\n")
 lanes_dic = dict(sorted(lanes_dic.items(), reverse=True))
+
 for key, value in lanes_dic.items():
-    switching_time = avg_signal_oc_time(lane_count_list)
-    switch_signal(value, switching_time)
+    switch_signal(value, vt[value])
 
 
 # switching_time = avg_signal_oc_time(lane_count_list)

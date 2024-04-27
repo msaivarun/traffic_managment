@@ -156,6 +156,7 @@ print('\033[1m' +
       "{:25s}: ".format("\nDetected  (" + str(len(imlist)) + " inputs)"))
 print('\033[0m')
 #Loading the image, if present :
+
 for i, batch in enumerate(im_batches):
     #load the image
     vehicle_count = 0
@@ -214,10 +215,11 @@ for i, batch in enumerate(im_batches):
             "           File Name:     {0:20s}.".format(image.split("/")[-1]))
         print('\033[0m' +
               "           {:15} {}".format("Vehicle Type", "Count"))
+        
         for key, value in sorted(vc.items()):
             if key == "car" or key == "motorbike" or key == "truck" or key == "bicycle":
                 print('\033[0m' + "            {:15s} {}".format(key, value))
-
+    
     if CUDA:
         torch.cuda.synchronize()
     if vehicle_count == 0:
@@ -245,5 +247,4 @@ try:
 except NameError:
     print("No detections were made | No Objects were found from the input")
     exit()
-
 torch.cuda.empty_cache()

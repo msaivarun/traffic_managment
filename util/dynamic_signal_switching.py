@@ -228,18 +228,12 @@ def switch_signal(denser_lane, seconds):
           "LANE-{} is now CLOSED ".format(str(denser_lane) + '\033[0m'))
 
 
-def avg_signal_oc_time(lane_count_list):
-    average_count = sum(lane_count_list) / len(lane_count_list)
-    if average_count > 50:
-        if int(max(lane_count_list)) > 75:
-            return 75
-        else:
-            return int(max(lane_count_list)) + 20
-    elif average_count > 60:
-        return 135
-    elif average_count > 45:
-        return 105
-    elif average_count > 20:
-        return 55
-    elif average_count < 20:
-        return 20
+# def avg_signal_oc_time(lane_count):
+#     if lane_count > 50:
+#         return 20
+#     elif lane_count > 35:
+#         return 15
+#     elif lane_count > 20:
+#         return 10
+#     elif lane_count <= 20:
+#         return 5
